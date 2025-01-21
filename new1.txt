@@ -109,7 +109,7 @@ namespace newupload1
 
 
 <connectionStrings>
-	<add name="MyConnectionString" connectionString="Data Source=DESKTOP-VAGKDBO;Initial Catalog=Uploadedimages;Integrated Security=True"/>
+	<add name="MyConnectionString" connectionString="Data Source=Your Data Source;Initial Catalog=Uploadedimages;Integrated Security=True"/>
 </connectionStrings>
 
 ---------------------------------
@@ -921,7 +921,7 @@ namespace newupload2
 
 
 	<connectionStrings>
-	<add name="MyConnectionString" connectionString= "Server=DESKTOP-VAGKDBO;Database=upload;Trusted_Connection=True;"/>
+	<add name="MyConnectionString" connectionString= "Server=Your Server;Database=upload;Trusted_Connection=True;"/>
 </connectionStrings>
 
 
@@ -1342,7 +1342,7 @@ also
 
 
 	<connectionStrings>
-	<add name="MyConnectionString" connectionString= "Server=DESKTOP-VAGKDBO;Database=upload;Trusted_Connection=True;"/>
+	<add name="MyConnectionString" connectionString= "Server=Your Server;Database=upload;Trusted_Connection=True;"/>
 </connectionStrings>
 
 CREATE TABLE ImageTags (
