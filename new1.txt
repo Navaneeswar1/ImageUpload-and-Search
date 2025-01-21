@@ -1,0 +1,1586 @@
+webform1.aspx
+
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="WebForm1.aspx.cs" Inherits="newupload1.WebForm1" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title></title>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <div>  
+            <p>Welcome to the webpage where you can Browse to Upload File </p>  
+
+           
+            <asp:FileUpload ID="FileUpload1" runat="server" />  
+        </div>  
+        <p>  
+            <asp:Button ID="Button1" runat="server" Text="Upload File" OnClick="Button1_Click" />  
+        </p>  
+    </form>
+
+    <p>  
+        <asp:Label runat="server" ID="FileUploadStatus"></asp:Label>  
+    </p>  
+</body>
+</html>
+
+
+------------------------------
+webform1.aspx.cs
+
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+namespace newupload1
+{
+    public partial class WebForm1 : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+
+
+
+        }
+
+ 
+
+               protected void Button1_Click(object sender, EventArgs e)
+        {
+            if (FileUpload1.HasFile)
+            {
+                string fileExtension = System.IO.Path.GetExtension(FileUpload1.FileName).ToLower();
+                string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
+
+                if (Array.Exists(allowedExtensions, ext => ext == fileExtension))
+                {
+                    try
+                    {
+                        // Get the uploaded file's data
+                        byte[] imageData = FileUpload1.FileBytes;
+                        string fileName = FileUpload1.FileName;
+
+                        // Save the file to the database
+                        string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+                        using (SqlConnection connection = new SqlConnection(connectionString))
+                        {
+                            string query = "INSERT INTO Uploadedimages (FileName, ImageData) VALUES (@FileName, @ImageData)";
+                            using (SqlCommand command = new SqlCommand(query, connection))
+                            {
+                                command.Parameters.AddWithValue("@FileName", fileName);
+                                command.Parameters.AddWithValue("@ImageData", imageData);
+
+                                connection.Open();
+                                command.ExecuteNonQuery();
+                                connection.Close();
+
+                                FileUploadStatus.Text = "Image uploaded successfully!";
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        FileUploadStatus.Text = "Error: " + ex.Message;
+                    }
+                }
+                else
+                {
+                    FileUploadStatus.Text = "Only image files (jpg, jpeg, png, gif) are allowed.";
+                }
+            }
+            else
+            {
+                FileUploadStatus.Text = "Please select an image to upload.";
+            }
+        }
+    }
+}
+
+--------------------------------
+
+
+<connectionStrings>
+	<add name="MyConnectionString" connectionString="Data Source=DESKTOP-VAGKDBO;Initial Catalog=Uploadedimages;Integrated Security=True"/>
+</connectionStrings>
+
+---------------------------------
+protected void Button1_Click(object sender, EventArgs e)
+{
+    if (FileUpload1.HasFile)
+    {
+        string fileExtension = Path.GetExtension(FileUpload1.FileName).ToLower();
+        string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
+
+        if (Array.Exists(allowedExtensions, ext => ext == fileExtension))
+        {
+            try
+            {
+                // Rename the file with a unique identifier
+                string renamedFileName = Guid.NewGuid().ToString() + fileExtension;
+
+                // Get the binary data of the uploaded file
+                byte[] fileData = FileUpload1.FileBytes;
+
+                // Save file data and name into the database
+                string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    string query = "INSERT INTO UploadedImages (FileName, ImageData) VALUES (@FileName, @ImageData)";
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@FileName", renamedFileName);
+                        command.Parameters.AddWithValue("@ImageData", fileData);
+
+                        connection.Open();
+                        command.ExecuteNonQuery();
+                        connection.Close();
+
+                        FileUploadStatus.Text = "Image uploaded and saved in the database successfully!";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                FileUploadStatus.Text = "Error: " + ex.Message;
+            }
+        }
+        else
+        {
+            FileUploadStatus.Text = "Only image files (jpg, jpeg, png, gif) are allowed.";
+        }
+    }
+    else
+    {
+        FileUploadStatus.Text = "Please select an image to upload.";
+    }
+}
+    }
+}
+
+
+-------------------------------------------------
+checks file exists or not with same name before
+
+
+protected void Button1_Click(object sender, EventArgs e)
+        {
+            if ((FileUpload1.PostedFile != null) && (FileUpload1.PostedFile.ContentLength > 0))
+            {
+                // Get the user input for desired file name
+                string userInputName = DesiredFileName.Text.Trim();
+
+                // Validate user input
+                if (string.IsNullOrEmpty(userInputName))
+                {
+                    FileUploadStatus.Text = "Please enter a valid file name.";
+                    return;
+                }
+
+                // Get the file extension of the uploaded file
+                string fileExtension = Path.GetExtension(FileUpload1.PostedFile.FileName).ToLower();
+
+                // Define allowed file extensions (optional)
+                string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".txt" };
+
+                if (Array.Exists(allowedExtensions, ext => ext == fileExtension))
+                {
+                    // Combine user input name and file extension
+                    string renamedFileName = userInputName + fileExtension;
+
+                    // Define the save location
+                    string saveLocation = Server.MapPath("upload") + "\\" + renamedFileName;
+
+                    // Check if a file with the same name already exists
+                    if (File.Exists(saveLocation))
+                    {
+                        FileUploadStatus.Text = "A file with the name '" + userInputName + "' already exists. Please choose a different name.";
+                        return;
+                    }
+
+                    try
+                    {
+                        // Save the file with the user-provided name
+                        FileUpload1.PostedFile.SaveAs(saveLocation);
+                        FileUploadStatus.Text = $"The file has been uploaded successfully as '{renamedFileName}'.";
+                    }
+                    catch (Exception ex)
+                    {
+                        FileUploadStatus.Text = "Error: " + ex.Message;
+                    }
+                }
+                else
+                {
+                    FileUploadStatus.Text = "Only files with the following extensions are allowed: .jpg, .jpeg, .png, .gif, .pdf, .txt.";
+                }
+            }
+            else
+            {
+                FileUploadStatus.Text = "Please select a file to upload.";
+            }
+        }
+    }
+}
+
+-------------------------------
+final search within folders without database but image is not showing completely , showing only name
+
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.IO;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+namespace newupload2
+{
+    public partial class WebForm1 : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        protected void SearchButton_Click(object sender, EventArgs e)
+        {
+            string searchInput = SearchInput.Text.Trim();
+            if (string.IsNullOrEmpty(searchInput))
+            {
+                SearchStatus.Text = "Please enter a search term.";
+                return;
+            }
+
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+
+            List<dynamic> results = new List<dynamic>();
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = @"
+            SELECT FileName, FilePath, Keywords
+            FROM ImageTags
+            WHERE FileName LIKE @SearchTerm OR Keywords LIKE @SearchTerm";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@SearchTerm", "%" + searchInput + "%");
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            results.Add(new
+                            {
+                                FileName = reader["FileName"].ToString(),
+                                FilePath = "upload/" + reader["FilePath"].ToString(),
+                                Keywords = reader["Keywords"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (results.Count > 0)
+            {
+                SearchResultsRepeater.DataSource = results;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = $"{results.Count} result(s) found.";
+            }
+            else
+            {
+                SearchResultsRepeater.DataSource = null;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = "No results found.";
+            }
+        }
+
+
+
+        protected void Button1_Click(object sender, EventArgs e)
+        {
+            if ((FileUpload1.PostedFile != null) && (FileUpload1.PostedFile.ContentLength > 0))
+            {
+                string userInputName = DesiredFileName.Text.Trim();
+                string keywords = Keywords.Text.Trim();
+
+                if (string.IsNullOrEmpty(userInputName))
+                {
+                    FileUploadStatus.Text = "Please enter a valid file name.";
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(keywords))
+                {
+                    FileUploadStatus.Text = "Please enter at least one keyword.";
+                    return;
+                }
+
+                string[] keywordArray = keywords.Split(',');
+                if (keywordArray.Length > 5)
+                {
+                    FileUploadStatus.Text = "You can only enter up to 5 keywords.";
+                    return;
+                }
+
+                string fileExtension = Path.GetExtension(FileUpload1.PostedFile.FileName).ToLower();
+                string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".txt" };
+
+                if (Array.Exists(allowedExtensions, ext => ext == fileExtension))
+                {
+                    string renamedFileName = userInputName + fileExtension;
+                    string saveLocation = Server.MapPath("upload") + "\\" + renamedFileName;
+
+                    if (File.Exists(saveLocation))
+                    {
+                        FileUploadStatus.Text = $"A file with the name '{userInputName}' already exists. Please choose a different name.";
+                        return;
+                    }
+
+                    try
+                    {
+                        FileUpload1.PostedFile.SaveAs(saveLocation);
+
+                        // Save file details and keywords in the database
+                        SaveToDatabase(renamedFileName, saveLocation, keywords);
+
+                        FileUploadStatus.Text = $"The file '{renamedFileName}' has been uploaded and tagged successfully.";
+                    }
+                    catch (Exception ex)
+                    {
+                        FileUploadStatus.Text = "Error: " + ex.Message;
+                    }
+                }
+                else
+                {
+                    FileUploadStatus.Text = "Only files with the following extensions are allowed: .jpg, .jpeg, .png, .gif, .pdf, .txt.";
+                }
+            }
+            else
+            {
+                FileUploadStatus.Text = "Please select a file to upload.";
+            }
+        }
+
+        private void SaveToDatabase(string fileName, string filePath, string keywords)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "INSERT INTO ImageTags (FileName, FilePath, Keywords) VALUES (@FileName, @FilePath, @Keywords)";
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@FileName", fileName);
+                    command.Parameters.AddWithValue("@FilePath", filePath);
+                    command.Parameters.AddWithValue("@Keywords", keywords);
+
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+}
+
+
+also
+
+
+
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="WebForm1.aspx.cs" Inherits="newupload2.WebForm1" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title></title>
+</head>
+<body>
+    <form id="form1" runat="server">
+        
+        <div>
+    <p>Search by Name or Keyword:</p>
+    <asp:TextBox ID="SearchInput" runat="server" />
+    <asp:Button ID="SearchButton" runat="server" Text="Search" OnClick="SearchButton_Click" />
+</div>
+
+<div>
+    <asp:Label ID="SearchStatus" runat="server"></asp:Label>
+    <asp:Repeater ID="SearchResultsRepeater" runat="server">
+        <ItemTemplate>
+            <div style="margin-bottom: 10px;">
+                <img src='<%# Eval("FilePath") %>' alt='<%# Eval("FileName") %>' style="max-width: 200px;" />
+                <p><strong>Name:</strong> <%# Eval("FileName") %></p>
+                <p><strong>Keywords:</strong> <%# Eval("Keywords") %></p>
+            </div>
+        </ItemTemplate>
+    </asp:Repeater>
+</div>
+
+
+
+        <div>
+            <p>Enter Desired File Name (without extension):</p>
+            <asp:TextBox ID="DesiredFileName" runat="server" />
+        </div>
+
+        <div>
+            <p>Enter up to 5 Keywords (comma-separated):</p>
+            <asp:TextBox ID="Keywords" runat="server" />
+        </div>
+
+        <div>  
+            <p>Welcome to the webform1 where you can Browse to Upload File </p>  
+
+           
+            <asp:FileUpload ID="FileUpload1" runat="server" />  
+        </div>  
+        <p>  
+            <asp:Button ID="Button1" runat="server" Text="Upload File" OnClick="Button1_Click" />  
+        </p>  
+    </form>
+
+    <p>  
+        <asp:Label runat="server" ID="FileUploadStatus"></asp:Label>  
+    </p>  
+
+  
+</body>
+</html>
+
+
+
+------------------------
+
+along with keywords is displayiong but not image
+
+
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.IO;
+using System.Web.UI;
+
+namespace newupload2
+{
+    public partial class WebForm1 : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+        }
+
+        protected void SearchButton_Click(object sender, EventArgs e)
+        {
+            string searchInput = SearchInput.Text.Trim();
+            if (string.IsNullOrEmpty(searchInput))
+            {
+                SearchStatus.Text = "Please enter a search term.";
+                return;
+            }
+
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+
+            List<dynamic> results = new List<dynamic>();
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = @"
+            SELECT Id, FileName, Keywords
+            FROM ImageTags
+            WHERE FileName LIKE @SearchTerm OR Keywords LIKE @SearchTerm";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@SearchTerm", "%" + searchInput + "%");
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            results.Add(new
+                            {
+                                Id = reader["Id"].ToString(),
+                                FileName = reader["FileName"].ToString(),
+                                Keywords = reader["Keywords"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (results.Count > 0)
+            {
+                SearchResultsRepeater.DataSource = results;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = $"{results.Count} result(s) found.";
+            }
+            else
+            {
+                SearchResultsRepeater.DataSource = null;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = "No results found.";
+            }
+        }
+
+        protected void Button1_Click(object sender, EventArgs e)
+        {
+            if ((FileUpload1.PostedFile != null) && (FileUpload1.PostedFile.ContentLength > 0))
+            {
+                string userInputName = DesiredFileName.Text.Trim();
+                string keywords = Keywords.Text.Trim();
+
+                if (string.IsNullOrEmpty(userInputName))
+                {
+                    FileUploadStatus.Text = "Please enter a valid file name.";
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(keywords))
+                {
+                    FileUploadStatus.Text = "Please enter at least one keyword.";
+                    return;
+                }
+
+                string[] keywordArray = keywords.Split(',');
+                if (keywordArray.Length > 5)
+                {
+                    FileUploadStatus.Text = "You can only enter up to 5 keywords.";
+                    return;
+                }
+
+                try
+                {
+                    byte[] fileContent;
+                    using (BinaryReader reader = new BinaryReader(FileUpload1.PostedFile.InputStream))
+                    {
+                        fileContent = reader.ReadBytes(FileUpload1.PostedFile.ContentLength);
+                    }
+
+                    SaveToDatabase(userInputName, fileContent, keywords);
+
+                    FileUploadStatus.Text = $"The file '{userInputName}' has been uploaded and tagged successfully.";
+                }
+                catch (Exception ex)
+                {
+                    FileUploadStatus.Text = "Error: " + ex.Message;
+                }
+            }
+            else
+            {
+                FileUploadStatus.Text = "Please select a file to upload.";
+            }
+        }
+
+        private void SaveToDatabase(string fileName, byte[] fileContent, string keywords)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "INSERT INTO ImageTags (FileName, FileContent, Keywords) VALUES (@FileName, @FileContent, @Keywords)";
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@FileName", fileName);
+                    command.Parameters.AddWithValue("@FileContent", fileContent);
+                    command.Parameters.AddWithValue("@Keywords", keywords);
+
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+}
+
+
+
+also
+
+
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="WebForm1.aspx.cs" Inherits="newupload2.WebForm1" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Image Upload and Search</title>
+</head>
+<body>
+    <form id="form1" runat="server">
+        
+        <!-- Search Section -->
+        <div>
+            <p>Search by Name or Keyword:</p>
+            <asp:TextBox ID="SearchInput" runat="server" />
+            <asp:Button ID="SearchButton" runat="server" Text="Search" OnClick="SearchButton_Click" />
+        </div>
+
+        <!-- Search Results -->
+        <div>
+            <asp:Label ID="SearchStatus" runat="server"></asp:Label>
+            <asp:Repeater ID="SearchResultsRepeater" runat="server">
+                <ItemTemplate>
+                    <div style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px;">
+                        <!-- Render image from a dynamic handler -->
+                        <img src="GetImageHandler.ashx?id=<%# Eval("Id") %>" alt='<%# Eval("FileName") %>' style="max-width: 200px;" />
+                        <p><strong>Name:</strong> <%# Eval("FileName") %></p>
+                        <p><strong>Keywords:</strong> <%# Eval("Keywords") %></p>
+                    </div>
+                </ItemTemplate>
+            </asp:Repeater>
+        </div>
+
+        <!-- Upload Section -->
+        <div>
+            <p>Enter Desired File Name (without extension):</p>
+            <asp:TextBox ID="DesiredFileName" runat="server" />
+        </div>
+
+        <div>
+            <p>Enter up to 5 Keywords (comma-separated):</p>
+            <asp:TextBox ID="Keywords" runat="server" />
+        </div>
+
+        <div>  
+            <p>Welcome to the webform1 where you can Browse to Upload File </p>
+            <asp:FileUpload ID="FileUpload1" runat="server" />  
+        </div>
+
+        <p>  
+            <asp:Button ID="Button1" runat="server" Text="Upload File" OnClick="Button1_Click" />  
+        </p>
+
+        <p>  
+            <asp:Label runat="server" ID="FileUploadStatus"></asp:Label>  
+        </p>  
+    </form>
+</body>
+</html>
+---------------------------
+
+only jpeg files to upload
+
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.IO;
+using System.Web.UI;
+
+namespace newupload2
+{
+    public partial class WebForm1 : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+        }
+
+        protected void SearchButton_Click(object sender, EventArgs e)
+        {
+            string searchInput = SearchInput.Text.Trim();
+            if (string.IsNullOrEmpty(searchInput))
+            {
+                SearchStatus.Text = "Please enter a search term.";
+                return;
+            }
+
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+
+            List<dynamic> results = new List<dynamic>();
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = @"
+            SELECT Id, FileName, Keywords
+            FROM ImageTags
+            WHERE FileName LIKE @SearchTerm OR Keywords LIKE @SearchTerm";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@SearchTerm", "%" + searchInput + "%");
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            results.Add(new
+                            {
+                                Id = reader["Id"].ToString(),
+                                FileName = reader["FileName"].ToString(),
+                                Keywords = reader["Keywords"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (results.Count > 0)
+            {
+                SearchResultsRepeater.DataSource = results;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = $"{results.Count} result(s) found.";
+            }
+            else
+            {
+                SearchResultsRepeater.DataSource = null;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = "No results found.";
+            }
+        }
+
+        protected void Button1_Click(object sender, EventArgs e)
+        {
+            if (FileUpload1.HasFile)
+            {
+                string fileName = DesiredFileName.Text.Trim();
+                string keywords = Keywords.Text.Trim();
+                string fileType = FileUpload1.PostedFile.ContentType;
+                byte[] fileData = FileUpload1.FileBytes;
+
+                SaveToDatabase(fileName, fileType, fileData, keywords);
+                FileUploadStatus.Text = $"The file '{fileName}' has been uploaded successfully.";
+            }
+            else
+            {
+                FileUploadStatus.Text = "Please select a file to upload.";
+            }
+        }
+
+        private void SaveToDatabase(string fileName, string fileType, byte[] fileData, string keywords)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "INSERT INTO ImageTags (FileName, FileType, FileData, Keywords) VALUES (@FileName, @FileType, @FileData, @Keywords)";
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@FileName", fileName);
+                    command.Parameters.AddWithValue("@FileType", fileType);
+                    command.Parameters.AddWithValue("@FileData", fileData);
+                    command.Parameters.AddWithValue("@Keywords", keywords);
+
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+    }
+}
+
+
+
+also
+
+
+
+
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="WebForm1.aspx.cs" Inherits="newupload2.WebForm1" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Image Upload and Search</title>
+</head>
+<body>
+    <form id="form1" runat="server">
+        
+        <!-- Search Section -->
+        <div>
+            <p>Search by Name or Keyword:</p>
+            <asp:TextBox ID="SearchInput" runat="server" />
+            <asp:Button ID="SearchButton" runat="server" Text="Search" OnClick="SearchButton_Click" />
+        </div>
+
+        <!-- Search Results -->
+        <div>
+            <asp:Label ID="SearchStatus" runat="server"></asp:Label>
+            <asp:Repeater ID="SearchResultsRepeater" runat="server">
+                <ItemTemplate>
+                    <div style="margin-bottom: 10px; border: 1px solid #ddd; padding: 10px;">
+                        <!-- Render image from a dynamic handler -->
+<img src="GetImageHandler.ashx?id=<%# Eval("Id") %>" alt='<%# Eval("FileName") %>' style="max-width: 100%; height: auto;" />
+                        <p><strong>Name:</strong> <%# Eval("FileName") %></p>
+                        <p><strong>Keywords:</strong> <%# Eval("Keywords") %></p>
+                    </div>
+                </ItemTemplate>
+            </asp:Repeater>
+        </div>
+
+        <!-- Upload Section -->
+        <div>
+            <p>Enter Desired File Name (without extension):</p>
+            <asp:TextBox ID="DesiredFileName" runat="server" />
+        </div>
+
+        <div>
+            <p>Enter up to 5 Keywords (comma-separated):</p>
+            <asp:TextBox ID="Keywords" runat="server" />
+        </div>
+
+        <div>  
+            <p>Welcome to the webform1 where you can Browse to Upload File </p>
+            <asp:FileUpload ID="FileUpload1" runat="server" />  
+        </div>
+
+        <p>  
+            <asp:Button ID="Button1" runat="server" Text="Upload File" OnClick="Button1_Click" />  
+        </p>
+
+        <p>  
+            <asp:Label runat="server" ID="FileUploadStatus"></asp:Label>  
+        </p>  
+    </form>
+</body>
+</html>
+
+
+also GetImageHandler.ashx.cs file 
+
+
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+
+namespace newupload2
+{
+    /// <summary>
+    /// Summary description for GetImageHandler
+    /// </summary>
+    public class GetImageHandler : IHttpHandler
+    {
+
+        public void ProcessRequest(HttpContext context)
+        {
+            int id;
+            if (!int.TryParse(context.Request.QueryString["id"], out id))
+            {
+                context.Response.StatusCode = 400; // Bad Request
+                context.Response.End();
+                return;
+            }
+
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "SELECT FileType, FileData FROM ImageTags WHERE Id = @Id";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            string fileType = reader["FileType"].ToString();
+                            byte[] fileData = (byte[])reader["FileData"];
+
+                            context.Response.ContentType = fileType;
+                            context.Response.BinaryWrite(fileData);
+                        }
+                        else
+                        {
+                            context.Response.StatusCode = 404; // Not Found
+                        }
+                    }
+                }
+            }
+        }
+
+        public bool IsReusable
+        {
+            get
+            {
+                return false;
+            }
+        }
+    }
+}
+
+
+
+
+	<connectionStrings>
+	<add name="MyConnectionString" connectionString= "Server=DESKTOP-VAGKDBO;Database=upload;Trusted_Connection=True;"/>
+</connectionStrings>
+
+
+CREATE TABLE ImageTags (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    FileName NVARCHAR(255),
+    FileType NVARCHAR(50),
+    FileData VARBINARY(MAX),
+    Keywords NVARCHAR(255)
+);
+
+---------------------------------------
+updated files
+
+
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="WebForm1.aspx.cs" Inherits="newupload2.WebForm1" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Image Upload and Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        form {
+            width: 80%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        div {
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        input[type="text"], .aspNetDisabled {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input[type="file"] {
+            margin-top: 5px;
+        }
+
+        button, input[type="submit"], .aspNetDisabled {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover, input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .search-results {
+            margin-top: 20px;
+        }
+
+        .search-results div {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: #fafafa;
+            border-radius: 4px;
+        }
+
+        .search-results img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .status-label {
+            color: #ff0000;
+            font-weight: bold;
+        }
+
+        .success-label {
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <form id="form1" runat="server">
+        
+        <!-- Search Section -->
+        <div>
+            <p>Search by Name or Keyword:</p>
+            <asp:TextBox ID="SearchInput" runat="server" />
+            <asp:Button ID="SearchButton" runat="server" Text="Search" OnClick="SearchButton_Click" />
+        </div>
+
+        <!-- Search Results -->
+        <div class="search-results">
+            <asp:Label ID="SearchStatus" runat="server" CssClass="status-label"></asp:Label>
+            <asp:Repeater ID="SearchResultsRepeater" runat="server">
+                <ItemTemplate>
+                    <div>
+                        <!-- Render image from a dynamic handler -->
+                        <img src="GetImageHandler.ashx?id=<%# Eval("Id") %>" alt='<%# Eval("FileName") %>' />
+                        <p><strong>Name:</strong> <%# Eval("FileName") %></p>
+                        <p><strong>Keywords:</strong> <%# Eval("Keywords") %></p>
+                    </div>
+                </ItemTemplate>
+            </asp:Repeater>
+        </div>
+
+        <!-- Upload Section -->
+        <div>
+            <p>Enter Desired File Name (without extension):</p>
+            <asp:TextBox ID="DesiredFileName" runat="server" />
+        </div>
+
+        <div>
+            <p>Enter up to 5 Keywords (comma-separated):</p>
+            <asp:TextBox ID="Keywords" runat="server" />
+        </div>
+
+        <div>  
+            <p>Welcome to the webform1 where you can Browse to Upload File </p>
+            <asp:FileUpload ID="FileUpload1" runat="server" />  
+        </div>
+
+        <p>  
+            <asp:Button ID="Button1" runat="server" Text="Upload File" OnClick="Button1_Click" />  
+        </p>
+
+        <p>  
+            <asp:Label runat="server" ID="FileUploadStatus" CssClass="success-label"></asp:Label>  
+        </p>  
+    </form>
+</body>
+</html>
+
+
+
+also
+
+
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.IO;
+using System.Web.UI;
+
+namespace newupload2
+{
+    public partial class WebForm1 : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+        }
+
+        protected void SearchButton_Click(object sender, EventArgs e)
+        {
+            string searchInput = SearchInput.Text.Trim();
+            if (string.IsNullOrEmpty(searchInput))
+            {
+                SearchStatus.Text = "Please enter a search term.";
+                return;
+            }
+
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+
+            List<dynamic> results = new List<dynamic>();
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = @"
+            SELECT Id, FileName, Keywords
+            FROM ImageTags
+            WHERE FileName LIKE @SearchTerm OR Keywords LIKE @SearchTerm";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@SearchTerm", "%" + searchInput + "%");
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            results.Add(new
+                            {
+                                Id = reader["Id"].ToString(),
+                                FileName = reader["FileName"].ToString(),
+                                Keywords = reader["Keywords"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (results.Count > 0)
+            {
+                SearchResultsRepeater.DataSource = results;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = $"{results.Count} result(s) found.";
+            }
+            else
+            {
+                SearchResultsRepeater.DataSource = null;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = "No results found.";
+            }
+        }
+
+
+
+
+        protected void Button1_Click(object sender, EventArgs e)
+        {
+            if ((FileUpload1.PostedFile != null) && (FileUpload1.PostedFile.ContentLength > 0))
+            {
+                string userInputName = DesiredFileName.Text.Trim();
+                string keywords = Keywords.Text.Trim();
+
+                if (string.IsNullOrEmpty(userInputName))
+                {
+                    FileUploadStatus.Text = "Please enter a valid file name.";
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(keywords))
+                {
+                    FileUploadStatus.Text = "Please enter at least one keyword.";
+                    return;
+                }
+
+                string[] keywordArray = keywords.Split(',');
+                if (keywordArray.Length > 5)
+                {
+                    FileUploadStatus.Text = "You can only enter up to 5 keywords.";
+                    return;
+                }
+
+                string fileExtension = Path.GetExtension(FileUpload1.PostedFile.FileName).ToLower();
+                string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".txt" };
+
+                if (Array.Exists(allowedExtensions, ext => ext == fileExtension))
+                {
+                    string renamedFileName = userInputName + fileExtension;
+
+                    // Check if the filename already exists in the database
+                    if (IsFileNameExists(renamedFileName))
+                    {
+                        FileUploadStatus.Text = $"A file with the name '{userInputName}' already exists. Please choose a different name.";
+                        return;
+                    }
+
+                    try
+                    {
+                        byte[] fileData = FileUpload1.FileBytes;
+                        string fileType = FileUpload1.PostedFile.ContentType;
+
+                        // Save file details and keywords in the database
+                        SaveToDatabase(renamedFileName, fileType, fileData, keywords);
+
+                        FileUploadStatus.Text = $"The file '{renamedFileName}' has been uploaded and tagged successfully.";
+                    }
+                    catch (Exception ex)
+                    {
+                        FileUploadStatus.Text = "Error: " + ex.Message;
+                    }
+                }
+                else
+                {
+                    FileUploadStatus.Text = "Only files with the following extensions are allowed: .jpg, .jpeg, .png, .gif, .pdf, .txt.";
+                }
+            }
+            else
+            {
+                FileUploadStatus.Text = "Please select a file to upload.";
+            }
+        }
+
+        // Helper method to check if the filename exists
+        private bool IsFileNameExists(string fileName)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "SELECT COUNT(*) FROM ImageTags WHERE FileName = @FileName";
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@FileName", fileName);
+
+                    connection.Open();
+                    int count = (int)command.ExecuteScalar();
+                    return count > 0; // Return true if the filename exists
+                }
+            }
+        }
+
+
+        private void SaveToDatabase(string fileName, string fileType, byte[] fileData, string keywords)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "INSERT INTO ImageTags (FileName, FileType, FileData, Keywords) VALUES (@FileName, @FileType, @FileData, @Keywords)";
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@FileName", fileName);
+                    command.Parameters.AddWithValue("@FileType", fileType);
+                    command.Parameters.AddWithValue("@FileData", fileData);
+                    command.Parameters.AddWithValue("@Keywords", keywords);
+
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+    }
+}
+
+
+
+
+also
+
+
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+
+namespace newupload2
+{
+    /// <summary>
+    /// Summary description for GetImageHandler
+    /// </summary>
+    public class GetImageHandler : IHttpHandler
+    {
+
+        public void ProcessRequest(HttpContext context)
+        {
+            int id;
+            if (!int.TryParse(context.Request.QueryString["id"], out id))
+            {
+                context.Response.StatusCode = 400; // Bad Request
+                context.Response.End();
+                return;
+            }
+
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "SELECT FileType, FileData FROM ImageTags WHERE Id = @Id";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            string fileType = reader["FileType"].ToString();
+                            byte[] fileData = (byte[])reader["FileData"];
+
+                            context.Response.ContentType = fileType;
+                            context.Response.BinaryWrite(fileData);
+                        }
+                        else
+                        {
+                            context.Response.StatusCode = 404; // Not Found
+                        }
+                    }
+                }
+            }
+        }
+
+        public bool IsReusable
+        {
+            get
+            {
+                return false;
+            }
+        }
+    }
+}
+
+
+
+also
+
+
+	<connectionStrings>
+	<add name="MyConnectionString" connectionString= "Server=DESKTOP-VAGKDBO;Database=upload;Trusted_Connection=True;"/>
+</connectionStrings>
+
+CREATE TABLE ImageTags (
+    Id INT IDENTITY(1,1) PRIMARY KEY, -- Auto-incrementing primary key
+    FileName NVARCHAR(255) NOT NULL UNIQUE, -- FileName with a specific length
+    FileType NVARCHAR(50) NOT NULL, -- MIME type of the file
+    FileData VARBINARY(MAX) NOT NULL, -- Binary file data
+    Keywords NVARCHAR(MAX) NOT NULL -- Comma-separated keywords
+);
+
+
+-------------------------------------
+
+
+i want  exact results (like "cat.jpeg" without matching "caterpillar.jpg" without entering the extension of .jpeg by user ), updated without saving extension for filenames and cat gives only cat filename without giving caterpillar filename, resets all with empty fields after uploading image
+
+
+
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.IO;
+using System.Linq;
+using System.Web.UI;
+
+namespace newupload2
+{
+    public partial class WebForm1 : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+        }
+
+
+
+        protected void SearchButton_Click(object sender, EventArgs e)
+        {
+            string searchInput = SearchInput.Text.Trim();
+            if (string.IsNullOrEmpty(searchInput))
+            {
+                SearchStatus.Text = "Please enter a search term.";
+                return;
+            }
+
+            // Remove the file extension from the search term (if any)
+            string searchBaseName = Path.GetFileNameWithoutExtension(searchInput).Trim();
+
+            if (string.IsNullOrEmpty(searchBaseName))
+            {
+                SearchStatus.Text = "Please enter a valid search term.";
+                return;
+            }
+
+            // Convert the search term to lowercase for case-insensitive search
+            string lowerSearchBaseName = searchBaseName.ToLower();
+
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+
+            List<dynamic> results = new List<dynamic>();
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                // Adjust the query to search for filenames that exactly match (ignoring extension)
+                string query = @"
+            SELECT Id, FileName, Keywords
+            FROM ImageTags
+            WHERE LOWER(FileName) = @SearchTerm
+            OR LOWER(Keywords) LIKE @SearchKeyword";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    // Match file names that exactly match the lowercase search term (before extensions)
+                    command.Parameters.AddWithValue("@SearchTerm", lowerSearchBaseName);
+
+                    // Search in keywords for the lowercase term
+                    string searchKeyword = "%" + lowerSearchBaseName + "%";
+                    command.Parameters.AddWithValue("@SearchKeyword", searchKeyword);
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            results.Add(new
+                            {
+                                Id = reader["Id"].ToString(),
+                                FileName = reader["FileName"].ToString(),
+                                Keywords = reader["Keywords"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (results.Count > 0)
+            {
+                SearchResultsRepeater.DataSource = results;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = $"{results.Count} result(s) found.";
+            }
+            else
+            {
+                SearchResultsRepeater.DataSource = null;
+                SearchResultsRepeater.DataBind();
+                SearchStatus.Text = "No results found.";
+            }
+        }
+
+
+
+
+
+
+
+        protected void Button1_Click(object sender, EventArgs e)
+        {
+            if ((FileUpload1.PostedFile != null) && (FileUpload1.PostedFile.ContentLength > 0))
+            {
+                string userInputName = DesiredFileName.Text.Trim();
+                string keywords = Keywords.Text.Trim();
+
+                if (string.IsNullOrEmpty(userInputName))
+                {
+                    FileUploadStatus.Text = "Please enter a valid file name.";
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(keywords))
+                {
+                    FileUploadStatus.Text = "Please enter at least one keyword.";
+                    return;
+                }
+
+                string[] keywordArray = keywords.Split(',');
+                if (keywordArray.Length > 5)
+                {
+                    FileUploadStatus.Text = "You can only enter up to 5 keywords.";
+                    return;
+                }
+
+                string fileExtension = Path.GetExtension(FileUpload1.PostedFile.FileName).ToLower();
+                string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".txt" };
+
+                if (Array.Exists(allowedExtensions, ext => ext == fileExtension))
+                {
+                    // Remove extension from the user input name
+                    string renamedFileName = Path.GetFileNameWithoutExtension(userInputName); // Remove any existing extension from user input
+
+                    // Check if the filename already exists in the database
+                    if (IsFileNameExists(renamedFileName))
+                    {
+                        FileUploadStatus.Text = $"A file with the name '{userInputName}' already exists. Please choose a different name.";
+                        return;
+                    }
+
+                    try
+                    {
+                        byte[] fileData = FileUpload1.FileBytes;
+                        string fileType = FileUpload1.PostedFile.ContentType;
+
+                        // Save file details and keywords in the database
+                        SaveToDatabase(renamedFileName, fileType, fileData, keywords);
+
+                        // Successfully uploaded, reset all fields
+                        ResetFields();
+
+                        FileUploadStatus.Text = $"The file '{renamedFileName}' has been uploaded and tagged successfully.";
+                    }
+                    catch (Exception ex)
+                    {
+                        FileUploadStatus.Text = "Error: " + ex.Message;
+                    }
+                }
+                else
+                {
+                    FileUploadStatus.Text = "Only files with the following extensions are allowed: .jpg, .jpeg, .png, .gif, .pdf, .txt.";
+                }
+            }
+            else
+            {
+                FileUploadStatus.Text = "Please select a file to upload.";
+            }
+        }
+
+        // Helper method to reset all fields
+        private void ResetFields()
+        {
+            DesiredFileName.Text = string.Empty;  // Clear the file name input
+            Keywords.Text = string.Empty;         // Clear the keywords input
+            FileUpload1.Attributes.Clear();       // Clear the file upload control
+            FileUploadStatus.Text = string.Empty; // Clear the upload status label
+        }
+
+
+
+        // Helper method to check if the filename exists
+        private bool IsFileNameExists(string fileName)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "SELECT COUNT(*) FROM ImageTags WHERE FileName = @FileName";
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@FileName", fileName);
+
+                    connection.Open();
+                    int count = (int)command.ExecuteScalar();
+                    return count > 0; // Return true if the filename exists
+                }
+            }
+        }
+
+
+        private void SaveToDatabase(string fileName, string fileType, byte[] fileData, string keywords)
+        {
+            string connectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                string query = "INSERT INTO ImageTags (FileName, FileType, FileData, Keywords) VALUES (@FileName, @FileType, @FileData, @Keywords)";
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@FileName", fileName);
+                    command.Parameters.AddWithValue("@FileType", fileType);
+                    command.Parameters.AddWithValue("@FileData", fileData);
+                    command.Parameters.AddWithValue("@Keywords", keywords);
+
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+    }
+}
+
+
+
+
+
+
